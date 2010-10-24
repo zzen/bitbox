@@ -1,7 +1,8 @@
 var sys     = require('sys')
+   ,connect = require('connect')
    ,domain  = require('./lib/domain')
    ,dropbox = require('./lib/dropbox')
-   ,connect = require('connect');
+   ,storage = require('./lib/storage');
 
 var PORT = 3000;
 
@@ -29,13 +30,21 @@ function website(app) {
                     res.writeHead(400, { 'Content-Type':'text/plain' });
                     res.end(sys.inspect(err));
                 } else {
-                    dropbox.test(req.body.dropbox, function(err, data) {
+                    dropbox.test(req.body.dropbox, function(err, user) {
                         if (err) {
                             res.writeHead(400, { 'Content-Type':'text/plain' });
-                            res.end(sys.inspect(err)+sys.inspect(data));
+                            res.end(sys.inspect(err)+sys.inspect(user));
                         } else {
-                            res.writeHead(200, { 'Content-Type':'text/plain' });
-                            res.end('Successful pairing!')
+                            storage.pair.store({ domain: req.body.domain, dropboxId: user }, function(err, data) {
+                                if (err) {
+                                    res.writeHead(400, { 'Content-Type':'text/plain' });
+                                    res.end(sys.inspect(err)+sys.inspect(data));
+                                } else {
+                                    res.writeHead(200, { 'Content-Type':'text/plain' });
+                                    console.log(sys.inspect(data));
+                                    res.end('Pairing setup successfully!');
+                                }
+                            });
                         }
                     });
                 }
