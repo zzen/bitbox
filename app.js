@@ -1,4 +1,5 @@
-var sys     = require('sys')
+var fs      = require('fs')
+   ,sys     = require('sys')
    ,connect = require('connect')
    ,domain  = require('./lib/domain')
    ,dropbox = require('./lib/dropbox')
@@ -24,20 +25,25 @@ function websiteRoutes(app) {
             res.write('Parameters: '+sys.inspect(req.body));
             res.end('Please include path to your public dropbox file!');
         } else {
-            
-            domain.test(req.body.domain, function(err, domains) {
+
+            var testHost = 'bitbox-verify.'+req.body.domain;
+
+            domain.test(testHost, function(err, domains) {
                 if (err) {
                     res.writeHead(400, { 'Content-Type':'text/plain' });
+                    res.write('The DNS lookup for was not successful for '+testHost+'!'+"\n");
                     res.end(sys.inspect(err));
                 } else {
                     dropbox.test(req.body.dropbox, function(err, user) {
                         if (err) {
                             res.writeHead(400, { 'Content-Type':'text/plain' });
+                            res.write('File '+req.body.dropbox+' could not be found!'+"\n");
                             res.end(sys.inspect(err)+sys.inspect(user));
                         } else {
                             storage.pair.store({ domain: req.body.domain, dropboxId: user }, function(err, data) {
                                 if (err) {
-                                    res.writeHead(400, { 'Content-Type':'text/plain' });
+                                    res.writeHead(500, { 'Content-Type':'text/plain' });
+                                    res.write('Could not save setup into MongoHQ!'+"\n");
                                     res.end(sys.inspect(err)+sys.inspect(data));
                                 } else {
                                     res.writeHead(200, { 'Content-Type':'text/plain' });
@@ -62,9 +68,22 @@ var website = connect.createServer(
 
 
 var bitbox = connect.createServer(function(req, res) {
-    console.log('Received request to '+req.headers.host);
-    res.writeHead('200', {'Content-Type':'text/plain'});
-    res.end('OK!');
+
+    var domain = req.headers.host;
+
+    storage.pair.getDropboxId('nesetril.cz', function(err, user) {
+        if (err) {
+            res.writeHead(404, { 'Content-Type':'text/plain' });
+            res.write('Cannot find setup for this domain!'+"\n");
+            res.end(sys.inspect(err)+sys.inspect(user));
+        } else {
+            fs.readFile(__dirname + '/frame.html', 'utf8', function(err, data) {
+                res.writeHead('200', {'Content-Type':'text/html'});
+                res.end(data.replace('{{url}}', 'http://dl.dropbox.com/u/'+user+req.url));
+            });
+        }
+    });
+
 });
 
 var server = module.exports = connect.createServer(
