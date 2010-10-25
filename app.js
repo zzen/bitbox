@@ -12,7 +12,7 @@ var cfg = {
     test: 'test1234.nesetril.cz'
 };
 
-function website(app) {
+function websiteRoutes(app) {
     app.post('/activate', function(req, res, next) {
         
         if (!req.body.domain) {
@@ -54,12 +54,23 @@ function website(app) {
     });
 }
 
+var website = connect.createServer(
+    connect.bodyDecoder(),
+    connect.router(websiteRoutes),
+    connect.staticProvider(__dirname + '/public')
+);
+
+
+var bitbox = connect.createServer(function(req, res) {
+    console.log('Received request to '+req.headers.host);
+    res.writeHead('200', {'Content-Type':'text/plain'});
+    res.end('OK!');
+});
 
 var server = module.exports = connect.createServer(
-    // connect.logger(),
-    connect.bodyDecoder(),
-    connect.router(website),
-    connect.staticProvider(__dirname + '/public')
+    connect.logger(),
+    connect.vhost('localhost', website),
+    connect.vhost('(?!localhost)*', bitbox)
 );
 
 sys.puts('Server started on port '+PORT);

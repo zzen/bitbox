@@ -4,7 +4,7 @@
     "description": "URL aliasing for public dropbox folders",
     "engines": { "node": ">=0.2.0" },
     "dependencies": {
-        "connect": "",
+        "connect": ">=0.2.7",
         "leaf": ""
     }
 }
